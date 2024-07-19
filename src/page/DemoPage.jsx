@@ -1,55 +1,79 @@
 import React, { useEffect, useState } from "react";
-import Table from '../components/ui/Table'
-import axios from 'axios'
+import Table from "../components/ui/Table";
+import axios from "axios";
+import { useSearchParams } from "react-router-dom";
+import SearchInput from "../components/formFields/Input";
 
+const pageSize = 10;
 const initialData = {
-  page: 1,
-  per_page: 6,
   total: 0,
-  total_pages: 0,
-  data: [],
+  products: [],
 };
 
 const DemoPage = () => {
-  const [userData, setUserData] = useState(initialData);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [productData, setProductData] = useState(initialData);
+  const [searchParams, setSearchParams] = useSearchParams({
+    page: 1,
+    search: "",
+  });
+  const currentPage = Number(searchParams.get("page")) ?? 1;
+  const search = searchParams.get("search")
 
   const columns = [
     { key: "id", header: "ID" },
-    { key: "email", header: "Title" },
-    { key: "first_name", header: "Body" },
-    { key: "last_name", header: "Body" },
+    { key: "title", header: "Title" },
+    { key: "description", header: "Description" },
+    { key: "category", header: "Category" },
+    { key: "price", header: "Price" },
   ];
 
   const onPagination = (page) => {
-    setCurrentPage(page);
+    setSearchParams(
+      (prev) => {
+        prev.set("page", page);
+        return prev;
+      },
+      { replace: true }
+    );
   };
 
-  const fetchData = async (_currentPage) => {
+  const onSearchHandler = (e) => {
+    setSearchParams(
+      (prev) => {
+        prev.set("search", e.target.value);
+        return prev;
+      },
+      { replace: true }
+    );
+  };
+
+  const fetchData = async (_currentPage, _search) => {
     try {
       const response = await axios.get(
-        `https://reqres.in/api/users?page=${_currentPage}`
+        `https://dummyjson.com/products/search?limit=${pageSize}&skip=${
+          (_currentPage - 1) * pageSize
+        }&q=${search}`
       );
-      setUserData(response.data);
+      setProductData(response.data);
     } catch (error) {
       console.error("Error fetching data:", error);
     }
   };
 
   useEffect(() => {
-    fetchData(currentPage);
-  }, [currentPage]);
+    fetchData(currentPage, search);
+  }, [currentPage, search]);
 
   return (
-    <div>
-      <h1>Posts</h1>
+    <div className="container">
+      <SearchInput type={"text"} onChange={onSearchHandler} />
       <Table
         columns={columns}
-        data={userData.data}
+        data={productData.products}
         pagination={{
           page: currentPage,
-          noOfData: userData.total,
-          pageSize: 6,
+          noOfData: productData.total,
+          pageSize,
           onPagination,
         }}
       />
